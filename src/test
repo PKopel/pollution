@@ -1,0 +1,22 @@
+P = pollution:createMonitor().
+P1 = pollution:addStation(P, "Aleja Słowackiego", {50.2345, 18.3445}).
+P2 = pollution:addValue(P1, {50.2345, 18.3445}, {{2020,3,30},{12,0,0}},"PM10", 59).
+P3 = pollution:addValue(P2, "Aleja Słowackiego", {{2020,3,30},{12,0,0}}, "PM2,5", 113).
+## błędne wywołania
+P4 = pollution:addValue(P3, {50.2345, 18.3445}, {{2020,3,30},{12,0,0}},"PM10", 59).
+P5 = pollution:addValue(P3, "Aleja Słowackiego", {{2020,3,30},{12,0,0}}, "PM2,5", 113).
+## dalej poprawne
+P6 = pollution:addValue(P3, {50.2345, 18.3445}, {{2020,3,30},{13,0,0}},"PM10", 70).
+P7 = pollution:addValue(P6, "Aleja Słowackiego", {{2020,3,30},{13,0,0}}, "PM2,5", 150).
+P8 = pollution:addValue(P7, {50.2345, 18.3445}, {{2020,3,30},{14,0,0}},"PM10", 61).
+P9 = pollution:addValue(P8, "Aleja Słowackiego", {{2020,3,30},{14,0,0}}, "PM2,5", 120).
+pollution:getOneValue(P8, {50.2345, 18.3445}, {{2020,3,30},{12,0,0}}, "PM2,5").
+pollution:getOneValue(P8, {50.2345, 18.3445}, {{2020,3,30},{13,0,0}}, "PM10").
+## błędne
+pollution:getOneValue(P8, {50.2345, 18.3445}, {{2020,3,30},{11,0,0}}, "PM2,5").
+pollution:getOneValue(P8, {50.2345, 18.3445}, {{2020,3,30},{13,0,0}}, "PM11").
+## dalej poprawne
+pollution:getStationMean(P8,"Aleja Słowackiego","PM10").
+pollution:getStationMean(P8,"Aleja Słowackiego","PM2,5").
+
+
