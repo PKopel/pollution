@@ -11,7 +11,8 @@
 -record(station, {name, coords, measurements = []}).
 
 %% API
--export([createMonitor/0, addStation/3, addValue/5, removeValue/4, getOneValue/4, getStationMean/3, getDailyMean/3]).
+-export([createMonitor/0, addStation/3, addValue/5, removeValue/4, getOneValue/4, getStationMean/3, getDailyMean/3,
+  getMinTypeMean/2, getTwoClosestStations/1]).
 
 searchMonitor([Current | T], {X, Y}, Func) ->
   if Current#station.coords == {X, Y} -> Func([Current | T]);
@@ -76,19 +77,6 @@ getOneValue(Monitor, Station, Date, Type) ->
              end,
   searchMonitor(Monitor, Station, GetValue).
 
-getStationMean(Monitor, Station, Type) ->
-  TypeMean = fun([S | _]) ->
-    case lists:foldl(fun({_, T, V}, {Sum, N}) ->
-      if T == Type -> {Sum + V, N + 1};
-        true -> {Sum, N}
-      end
-                     end, {0, 0}, S#station.measurements) of
-      {0, 0} -> {error, no_such_record};
-      {Value, Number} -> Value / Number
-    end;
-    ([]) -> {error, no_such_station} end,
-  searchMonitor(Monitor, Station, TypeMean).
-
 getDailyMean(Monitor, Type, {Year, Month, Day}) ->
   DailyMean = fun(S, {SumAcc, NumAcc}) ->
     {Value, Number} = lists:foldl(fun({{{Y, M, D}, _}, T, V}, {Sum, N}) ->
@@ -102,5 +90,51 @@ getDailyMean(Monitor, Type, {Year, Month, Day}) ->
   case lists:foldl(DailyMean, {0, 0}, Monitor) of
     {0, 0} -> 0;
     {Sum, Number} -> Sum / Number;
-    _ -> {error, wrong_arguments}
+    Other -> Other
   end.
+
+typeMean(Type) -> fun([S | _]) ->
+  case lists:foldl(fun({_, T, V}, {Sum, N}) ->
+    if T == Type -> {Sum + V, N + 1};
+      true -> {Sum, N}
+    end
+                   end, {0, 0}, S#station.measurements) of
+    {0, 0} -> {error, no_such_record};
+    {Value, Number} -> Value / Number
+  end;
+  ([]) -> {error, no_such_station} end.
+
+getStationMean(Monitor, Station, Type) ->
+  searchMonitor(Monitor, Station, typeMean(Type)).
+
+getMinTypeMean(Monitor, Type) ->
+  TypeMean = typeMean(Type),
+  MinMean = fun(S, {MinS, MinMean}) ->
+    Mean = TypeMean([S]),
+    if MinMean == 0; MinMean > Mean -> {S, Mean};
+      true -> {MinS, MinMean}
+    end;
+    (empty, Acc) -> Acc;
+    (_, _) -> {error, wrong_arguments} end,
+  {S, Mean} = lists:foldl(MinMean, {empty, 0}, Monitor),
+  {S#station.name, Mean}.
+
+distanceFrom(#station{coords = {X1, Y1}}) -> fun(#station{coords = {X2, Y2}}) ->
+  math:sqrt(math:pow(X1 - X2, 2) + math:pow(Y1 - Y2, 2));
+  (_) -> {error, wrong_arguments} end.
+
+closestTwo([_], {A, B, MinDist}) ->
+  {A, B, MinDist};
+closestTwo([S | T], {A, B, MinDist}) ->
+  DistanceFromS = distanceFrom(S),
+  [Closest | _] = lists:sort(fun(X, Y) -> DistanceFromS(X) > DistanceFromS(Y) end, T),
+  Distance = DistanceFromS(Closest),
+  if MinDist == 0; MinDist > Distance -> closestTwo(T, {S, Closest, Distance});
+    true -> closestTwo(T, {A, B, MinDist})
+  end;
+closestTwo(_, _) ->
+  {error, wrong_arguments}.
+
+getTwoClosestStations(Monitor) ->
+  {S1, S2, Dist} = closestTwo(Monitor, {empty, empty, 0}),
+  {S1#station.name, S2#station.name, Dist}.

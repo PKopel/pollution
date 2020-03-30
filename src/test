@@ -1,5 +1,5 @@
 % tworzenie struktóry monitora:
-M0S0P = pollution:createMonitor().
+M0S0P = pollution:createMonitor(). % wynik: []
 M1S0P = pollution:addStation(M0S0P, "Aleja Słowackiego", {50.2345, 18.3445}).
 M2S0P = pollution:addStation(M1S0P,"Nowa",{10,10}).
 M3S0P = pollution:addStation(M2S0P,"Trzecia",{0,10}).
@@ -42,22 +42,34 @@ pollution:getOneValue(M4S24P, "Trzecia", {{2020,3,30},{12,0,0}}, "PM10"). % wyni
 pollution:getOneValue(M4S24P, {20,10}, {{2020,3,29},{24,0,0}}, "PM2,5"). % wynik 130
 pollution:getOneValue(M4S24P, "Czwarta", {{2020,3,30},{12,0,0}}, "PM10"). % wynik 67
 % sprawdzenie średnich dla stacji
-pollution:getStationMean(M4S24P,{50.2345, 18.3445},"PM10").
-pollution:getStationMean(M4S24P,"Aleja Słowackiego","PM2,5").
-pollution:getStationMean(M4S24P,{10,10},"PM10").
-pollution:getStationMean(M4S24P,"Nowa","PM2,5").
-pollution:getStationMean(M4S24P,{0,10},"PM10").
-pollution:getStationMean(M4S24P,"Trzecia","PM2,5").
-pollution:getStationMean(M4S24P,{20,10},"PM10").
-pollution:getStationMean(M4S24P,"Czwarta","PM2,5").
+pollution:getStationMean(M4S24P,{50.2345, 18.3445},"PM10"). % wynik: 63.33
+pollution:getStationMean(M4S24P,"Aleja Słowackiego","PM2,5"). % wynik: 127.67
+pollution:getStationMean(M4S24P,{10,10},"PM10"). % wynik: 59.67
+pollution:getStationMean(M4S24P,"Nowa","PM2,5"). % wynik: 127.67
+pollution:getStationMean(M4S24P,{0,10},"PM10"). % wynik: 57.67
+pollution:getStationMean(M4S24P,"Trzecia","PM2,5"). % wynik: 106.67
+pollution:getStationMean(M4S24P,{20,10},"PM10"). % wynik: 59
+pollution:getStationMean(M4S24P,"Czwarta","PM2,5"). % wynik: 112.33
 % sprawdzenie średnich dla dni
-pollution:getDailyMean(M4S24P,"PM10",{2020,3,29}).
-pollution:getDailyMean(M4S24P,"PM2,5",{2020,3,29}).
-pollution:getDailyMean(M4S24P,"PM10",{2020,3,30}).
-pollution:getDailyMean(M4S24P,"PM2,5",{2020,3,30}).
+pollution:getDailyMean(M4S24P,"PM10",{2020,3,29}). % wynik: 53.25
+pollution:getDailyMean(M4S24P,"PM2,5",{2020,3,29}). % wynik: 117.5
+pollution:getDailyMean(M4S24P,"PM10",{2020,3,30}). % wynik: 63.25
+pollution:getDailyMean(M4S24P,"PM2,5",{2020,3,30}). % wynik: 119.125
+% stacje najbliżej siebie
+pollution:getTwoClosestStations(M4S24P). % wynik: {"Nowa","Czwarta",10}
+% stacja o najniższym średnim odczycie danego typu
+pollution:getMinTypeMean(M4S24P,"PM10"). % wynik: {"Trzecia",57.67}
+pollution:getMinTypeMean(M4S24P,"PM2,5"). % wynik: {"Trzecia",106.67}
 % błędne wywołania
-P4 = pollution:addValue(P3, {50.2345, 18.3445}, {{2020,3,30},{12,0,0}},"PM10", 59).
-P5 = pollution:addValue(P3, "Aleja Słowackiego", {{2020,3,30},{12,0,0}}, "PM2,5", 113).
-pollution:getOneValue(M4S18P, {50.2345, 18.3445}, {{2020,3,30},{11,0,0}}, "PM2,5").
-pollution:getOneValue(M4S18P, {50.2345, 18.3445}, {{2020,3,30},{13,0,0}}, "PM11").
-
+% dodanie stacji o zapisanej już nazwie
+pollution:addStation(M4S24P, "Aleja Słowackiego", {50.2345, 18.3445}). % wynik: {error, name_already_used}
+% dodanie stacji o zajętych współrzędnych
+pollution:addStation(M4S24P, "Aleja", {50.2345, 18.3445}). % wynik: {error, coords_already_used}
+% dodanie pomiaru o typie i dacie która jest już zapisana w danej stacji
+pollution:addValue(M4S24P, {50.2345, 18.3445}, {{2020,3,30},{12,0,0}},"PM10", 59). % wynik: {error, measurement_already_recorded}
+pollution:addValue(M4S24P, "Aleja Słowackiego", {{2020,3,30},{12,0,0}}, "PM2,5", 113). % wynik: {error, measurement_already_recorded}
+% dodanie pomiaru do nieistniejącej stacji
+pollution:addValue(M4S24P, "Aleja", {{2020,3,30},{12,0,0}}, "PM2,5", 113). % wynik: {error, no_such_station}
+% pobranie nieistniejącego pomiaru
+pollution:getOneValue(M4S24P, {50.2345, 18.3445}, {{2020,3,30},{11,0,0}}, "PM2,5"). % wynik: {error, no_such_record}
+pollution:getOneValue(M4S24P, {50.2345, 18.3445}, {{2020,3,30},{13,0,0}}, "PM11"). % wynik: {error, no_such_record}
