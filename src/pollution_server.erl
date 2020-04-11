@@ -12,9 +12,10 @@
 %% API
 -export([start/0, stop/0, addStation/2, addValue/4, removeValue/3, getOneValue/3, getStationMean/2, getDailyMean/2,
   getMinTypeMean/1, getTwoClosestStations/0]).
+-export([init/0]).
 
 start() ->
-  register(pollutionServer, spawn(pollution_server, init, [])).
+  register(pollutionServer, spawn(?MODULE, init, [])).
 
 init() ->
   loop(pollution:createMonitor()).
@@ -45,7 +46,7 @@ loop(Monitor) ->
       serve(Monitor, fun(M) -> pollution:getMinTypeMean(M, Type) end, Sender);
     {request, Sender, getTwoClosestStations} ->
       serve(Monitor, fun(M) -> pollution:getTwoClosestStations(M) end, Sender);
-    {request, Sender, stop} -> {reply, ok}
+    {request, Sender, stop} -> Sender ! {reply, ok}
   after 200000 -> timeout
   end.
 
