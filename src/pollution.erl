@@ -41,13 +41,13 @@ createMonitor() ->
 %dodanie nowej stacji: przeszukuje monitor pod kątem istnienia dodawanej stacji,
 % jeśli jej jeszcze nie ma to umieszcza ją na początku
 addStation(Monitor, Name, {X, Y}) ->
-  CompareStation = fun(S) ->
-      if S#station.name == Name -> true;
-        S#station.coords == {X, Y} -> true;
-        true -> false
-      end;
+  CompareStation = fun(#station{name = N, coords = C}) ->
+    if N == Name -> true;
+      C == {X, Y} -> true;
+      true -> false
+    end;
     (_) -> false end,
-  case lists:any( CompareStation, Monitor) of
+  case lists:any(CompareStation, Monitor) of
     true -> {error, station_already_exists};
     false -> [#station{name = Name, coords = {X, Y}} | Monitor]
   end.
@@ -97,11 +97,13 @@ getOneValue(Monitor, Station, Date, Type) ->
 % i ilość  pomiarów danego typu danego dnia, zwraca ich iloraz
 getDailyMean(Monitor, Type, {Year, Month, Day}) ->
   DailyMean = fun(S, {SumAcc, NumAcc}) ->
-    {Value, Number} = lists:foldl(fun({{{Y, M, D}, _}, T, V}, {Sum, N}) ->
-      if T == Type, Y == Year, M == Month, D == Day -> {Sum + V, N + 1};
-        true -> {Sum, N}
-      end
-                                  end, {0, 0}, S#station.measurements),
+    {Value, Number} = lists:foldl(
+      fun({{{Y, M, D}, _}, T, V}, {Sum, N}) ->
+        if T == Type, Y == Year, M == Month, D == Day -> {Sum + V, N + 1};
+          true -> {Sum, N}
+        end
+      end, {0, 0}, S#station.measurements
+    ),
     {SumAcc + Value, NumAcc + Number};
     (empty, Acc) -> Acc;
     (_, _) -> {error, wrong_arguments} end,
@@ -113,12 +115,14 @@ getDailyMean(Monitor, Type, {Year, Month, Day}) ->
 
 %funkcja pomocnicza do obliczania średniej wartośc danego typu pomiarów w danej stacji
 typeMean(Type) -> fun([S | _]) ->
-  case lists:foldl(fun({_, T, V}, {Sum, N}) ->
-    if T == Type -> {Sum + V, N + 1};
-      true -> {Sum, N}
-    end
-                   end, {0, 0}, S#station.measurements) of
-    {0, 0} -> {error, no_such_measurement};
+  case lists:foldl(
+    fun({_, T, V}, {Sum, N}) ->
+      if T == Type -> {Sum + V, N + 1};
+        true -> {Sum, N}
+      end
+    end, {0, 0}, S#station.measurements
+  ) of
+    {0, 0} -> 0;
     {Value, Number} -> Value / Number
   end;
   ([]) -> {error, no_such_station} end.
@@ -133,13 +137,17 @@ getStationMean(Monitor, Station, Type) ->
 getMinTypeMean(Monitor, Type) ->
   TypeMean = typeMean(Type),
   MinMean = fun(S, {MinS, MinMean}) ->
-    Mean = TypeMean([S]),
-    if MinMean == 0; MinMean > Mean -> {S, Mean};
-      true -> {MinS, MinMean}
+    case TypeMean([S]) of
+      {error, Reason} -> {error, Reason};
+      Mean ->
+        if MinMean == 0; MinMean > Mean -> {S, Mean};
+          true -> {MinS, MinMean}
+        end
     end;
     (empty, Acc) -> Acc;
     (_, _) -> {error, wrong_arguments} end,
   case lists:foldl(MinMean, {empty, 0}, Monitor) of
+    {_, 0} -> {error, no_such_measurement};
     {S, Mean} -> {S#station.name, Mean};
     Other -> Other
   end.
@@ -159,9 +167,9 @@ closestTwo([_], {A, B, MinDist}) ->
 % parę S i tą stacją
 closestTwo([S | T], {A, B, MinDist}) ->
   DistanceFromS = distanceFrom(S),
-  [Closest | _] = lists:sort(fun(X, Y) -> DistanceFromS(X) > DistanceFromS(Y) end, T),
+  [Closest | _] = lists:sort(fun(X, Y) -> DistanceFromS(X) < DistanceFromS(Y) end, T),
   Distance = DistanceFromS(Closest),
-  if MinDist == 0; MinDist > Distance -> closestTwo(T, {S, Closest, Distance});
+  if MinDist > Distance -> closestTwo(T, {S, Closest, Distance});
     true -> closestTwo(T, {A, B, MinDist})
   end;
 %w przypadku błędnych argumentów
@@ -170,5 +178,7 @@ closestTwo(_, _) ->
 
 %wrapper dla wcześniejszej funkcji
 getTwoClosestStations(Monitor) ->
-  {S1, S2, Dist} = closestTwo(Monitor, {empty, empty, 0}),
-  {S1#station.name, S2#station.name, Dist}.
+  case closestTwo(Monitor, {empty, empty, infinity}) of
+    {S1, S2, Dist} -> {S1#station.name, S2#station.name, Dist};
+    Other -> Other
+  end.
