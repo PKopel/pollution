@@ -47,7 +47,6 @@ loop(Monitor) ->
     {request, Sender, getTwoClosestStations} ->
       serve(Monitor, fun(M) -> pollution:getTwoClosestStations(M) end, Sender);
     {request, Sender, stop} -> Sender ! {reply, ok}
-  after 200000 -> timeout
   end.
 
 call(Message) ->

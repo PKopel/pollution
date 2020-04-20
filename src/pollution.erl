@@ -39,16 +39,18 @@ createMonitor() ->
   [].
 
 %dodanie nowej stacji: przeszukuje monitor pod kątem istnienia dodawanej stacji,
-% jeśli jej jeszcze nie ma to umieszcza ją na jego końcu
-addStation(Monitor, Name, Coords) ->
-  AddStation = fun([]) -> [#station{name = Name, coords = Coords}];
-    ([S | _]) ->
-      if S#station.name == Name -> {error, name_already_used};
-        S#station.coords == Coords -> {error, coords_already_used};
-        true -> {error, wrong_arguments}
+% jeśli jej jeszcze nie ma to umieszcza ją na początku
+addStation(Monitor, Name, {X, Y}) ->
+  CompareStation = fun(S) ->
+      if S#station.name == Name -> true;
+        S#station.coords == {X, Y} -> true;
+        true -> false
       end;
-    (_) -> {error, wrong_arguments} end,
-  searchMonitor(Monitor, Coords, AddStation).
+    (_) -> false end,
+  case lists:any( CompareStation, Monitor) of
+    true -> {error, station_already_exists};
+    false -> [#station{name = Name, coords = {X, Y}} | Monitor]
+  end.
 
 %funkcja pomocnicza do przeszukiwania listy pomiarów
 filter(Date, Type) -> fun({D, T, _}) when D == Date, T == Type -> true;(_) -> false end.
@@ -137,8 +139,10 @@ getMinTypeMean(Monitor, Type) ->
     end;
     (empty, Acc) -> Acc;
     (_, _) -> {error, wrong_arguments} end,
-  {S, Mean} = lists:foldl(MinMean, {empty, 0}, Monitor),
-  {S#station.name, Mean}.
+  case lists:foldl(MinMean, {empty, 0}, Monitor) of
+    {S, Mean} -> {S#station.name, Mean};
+    Other -> Other
+  end.
 
 %funkcja pomocnicza do obliczania odległości między stacjami
 distanceFrom(#station{coords = {X1, Y1}}) -> fun(#station{coords = {X2, Y2}}) ->
