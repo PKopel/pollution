@@ -71,7 +71,7 @@ removeValue(Station, Date, Type) ->
 getOneValue(Station, Date, Type) ->
   call({getOneValue, Station, Date, Type}).
 
-getDailyMean(Date, Type) ->
+getDailyMean(Type, Date) ->
   call({getDailyMean, Date, Type}).
 
 getStationMean(Station, Type) ->
