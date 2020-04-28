@@ -3,7 +3,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
--module(pollution_r_sup).
+-module(pollution_sup).
 
 -behaviour(supervisor).
 
@@ -14,7 +14,7 @@
 -define(SERVER, ?MODULE).
 
 start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+  supervisor:start_link( ?MODULE, []).
 
 %% sup_flags() = #{strategy => strategy(),         % optional
 %%                 intensity => non_neg_integer(), % optional
@@ -26,10 +26,17 @@ start_link() ->
 %%                  type => worker(),       % optional
 %%                  modules => modules()}   % optional
 init([]) ->
-    SupFlags = #{strategy => one_for_all,
-                 intensity => 0,
-                 period => 1},
-    ChildSpecs = [],
-    {ok, {SupFlags, ChildSpecs}}.
+  SupFlags = #{strategy => one_for_all,
+    intensity => 1,
+    period => 1},
+  ChildSpecs = [#{
+    id => pollution_gen_server,
+    start => {pollution_gen_server, start_link, []},
+    restart => transient,
+    shutdown => brutal_kill,
+    type => worker,
+    modules => [pollution_gen_server, pollution]
+  }],
+  {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions

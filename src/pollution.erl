@@ -14,8 +14,8 @@
 -export([createMonitor/0, addStation/3, addValue/5, removeValue/4, getOneValue/4, getStationMean/3, getDailyMean/3,
   getMinTypeMean/2, getTwoClosestStations/1]).
 
-%wyszukiwanie stacji w monitorze:
-% po współrzędnych
+%% @hidden Searching station in monitor:
+%% by coordinates
 searchMonitor([Current | T], {X, Y}, Func) ->
   if Current#station.coords == {X, Y} -> Func([Current | T]);
     true -> Result = searchMonitor(T, {X, Y}, Func),
@@ -23,7 +23,7 @@ searchMonitor([Current | T], {X, Y}, Func) ->
         true -> Result
       end
   end;
-% po nazwie
+%% by name
 searchMonitor([Current | T], Name, Func) ->
   if Current#station.name == Name -> Func([Current | T]);
     true -> Result = searchMonitor(T, Name, Func),
@@ -31,15 +31,21 @@ searchMonitor([Current | T], Name, Func) ->
         true -> Result
       end
   end;
-% przypadek brzegowy
+%% edge condition
 searchMonitor(Monitor, _, Func) ->
   Func(Monitor).
 
+%% @doc Create monitor:
+%% Returns new empty monitor
+%% @end
 createMonitor() ->
   [].
 
-%dodanie nowej stacji: przeszukuje monitor pod kątem istnienia dodawanej stacji,
-% jeśli jej jeszcze nie ma to umieszcza ją na początku
+%% @doc Add new station: check if station is already in monitor,
+%% if not put new one at the beginning.
+%% Returns new monitor or {error, station_already_exists} if
+%% monitor already contains station with given Name or coordinates.
+%% @end
 addStation(Monitor, Name, {X, Y}) ->
   CompareStation = fun(#station{name = N, coords = C}) ->
     if N == Name -> true;
@@ -52,12 +58,17 @@ addStation(Monitor, Name, {X, Y}) ->
     false -> [#station{name = Name, coords = {X, Y}} | Monitor]
   end.
 
-%funkcja pomocnicza do przeszukiwania listy pomiarów
+%% @hidden helper function for searching measurement list
 filter(Date, Type) -> fun({D, T, _}) when D == Date, T == Type -> true;(_) -> false end.
 
-%dodanie pomiaru: przeszukuje monitor aż znajdzie właściwą stację,
-% następnie sprawdza czy pomiar nie został już zapisany
-% i jesli nie, to umieszcza go na początku listy
+%% @doc Add measurement: get station from monitor,
+%% check if measurement is already recorded in that station,
+%% if not put it at the beginning.
+%% Returns {error, measurement_already_recorded} if given station
+%% contains measurement of Type form Date, {error, no_such_station}
+%% if monitor doesn't contain station with name or coordinates equal
+%% to Station or new monitor with new measurement recorded.
+%% @end
 addValue(Monitor, Station, Date, Type, Value) ->
   AddValue = fun([S | T]) ->
     case lists:any(filter(Date, Type), S#station.measurements) of
@@ -68,8 +79,14 @@ addValue(Monitor, Station, Date, Type, Value) ->
     ([]) -> {error, no_such_station} end,
   searchMonitor(Monitor, Station, AddValue).
 
-%usuwanie pomiaru: przeszukuje monitor aż znajdzie właściwą stację,
-% następnie sprawdza czy dany pomiar istnieje i usuwa go
+%% @doc Remove measurement: get station from monitor,
+%% check if measurement is recorded in that station
+%% and remove it.
+%% Returns {error, no_such_measurement} if given station doesn't
+%% contains measurement of Type form Date, {error, no_such_station}
+%% if monitor doesn't contain station with name or coordinates equal
+%% to Station or new monitor without specified measurement.
+%% @end
 removeValue(Monitor, Station, Date, Type) ->
   Filter = filter(Date, Type),
   RemoveValue = fun([S | T]) ->
@@ -81,8 +98,14 @@ removeValue(Monitor, Station, Date, Type) ->
     ([]) -> {error, no_such_station} end,
   searchMonitor(Monitor, Station, RemoveValue).
 
-%usuwanie pomiaru: przeszukuje monitor aż znajdzie właściwą stację,
-% następnie sprawdza czy dany pomiar istnieje i zwraca jego wartość
+%% @doc Get measurement: get station from monitor,
+%% check if measurement is recorded in that station
+%% and return it.
+%% Returns {error, no_such_measurement} if given station doesn't
+%% contains measurement of Type form Date, {error, no_such_station}
+%% if monitor doesn't contain station with name or coordinates equal
+%% to Station or value of requested measurement.
+%% @end
 getOneValue(Monitor, Station, Date, Type) ->
   GetValue = fun([S | _]) ->
     case lists:filter(filter(Date, Type), S#station.measurements) of
@@ -93,8 +116,11 @@ getOneValue(Monitor, Station, Date, Type) ->
              end,
   searchMonitor(Monitor, Station, GetValue).
 
-%średnia dzienna: korzystając z funkcji foldl na monitorze oblicza sumę wartości
-% i ilość  pomiarów danego typu danego dnia, zwraca ich iloraz
+%% @doc Dail mean: get mean value of measurements of Type
+%% from {Year, Month, Day}.
+%% Returns mean value of measurements or 0 if there are no
+%% measurements of Type from {Year, Month, Day} in Monitor
+%% @end
 getDailyMean(Monitor, Type, {Year, Month, Day}) ->
   DailyMean = fun(S, {SumAcc, NumAcc}) ->
     {Value, Number} = lists:foldl(
@@ -105,15 +131,13 @@ getDailyMean(Monitor, Type, {Year, Month, Day}) ->
       end, {0, 0}, S#station.measurements
     ),
     {SumAcc + Value, NumAcc + Number};
-    (empty, Acc) -> Acc;
-    (_, _) -> {error, wrong_arguments} end,
+    (empty, Acc) -> Acc end,
   case lists:foldl(DailyMean, {0, 0}, Monitor) of
     {0, 0} -> 0;
-    {Sum, Number} -> Sum / Number;
-    Other -> Other
+    {Sum, Number} -> Sum / Number
   end.
 
-%funkcja pomocnicza do obliczania średniej wartośc danego typu pomiarów w danej stacji
+%% @hidden helper function for computing mean value of measurements of Type in one station
 typeMean(Type) -> fun([S | _]) ->
   case lists:foldl(
     fun({_, T, V}, {Sum, N}) ->
@@ -127,13 +151,21 @@ typeMean(Type) -> fun([S | _]) ->
   end;
   ([]) -> {error, no_such_station} end.
 
-%średnia danego typu pomiarów w danej stacji: przeszukuje monitor
-% i jeśli znajdzie właściwą stację to liczy i zwraca średnią korzystając z poprzedniej funkcji
+%% @doc Mean value of Type in Station: get Station from monitor
+%% and compute mean value of measurements of Type in it.
+%% Returns {error, no_such_station} if monitor doesn't contain
+%% station with name or coordinates equal to Station, mean
+%% value of measurements of Type or 0 in case there are no such
+%% measurements.
+%% @end
 getStationMean(Monitor, Station, Type) ->
   searchMonitor(Monitor, Station, typeMean(Type)).
 
-%stacja o najmniejszej średniej danego typu pomiarów: korzystając z foldl na monitorze i funkcji
-% typeMean znajduje odpowiednią stację, zwraca {nazwa stacji, wartość średniej}
+%% @doc Station with minimal mean value of Type: find station in
+%% Monitor with loves mean value of measurements of Type.
+%% Returns {empty, 0} if there are no measurements of Type in
+%% Monitor or {Station_name, Mean_value}.
+%% @end
 getMinTypeMean(Monitor, Type) ->
   TypeMean = typeMean(Type),
   MinMean = fun(S, {MinS, MinMean}) ->
@@ -147,24 +179,23 @@ getMinTypeMean(Monitor, Type) ->
     (empty, Acc) -> Acc;
     (_, _) -> {error, wrong_arguments} end,
   case lists:foldl(MinMean, {empty, 0}, Monitor) of
-    {_, 0} -> {error, no_such_measurement};
     {S, Mean} -> {S#station.name, Mean};
     Other -> Other
   end.
 
-%funkcja pomocnicza do obliczania odległości między stacjami
+%% @hidden helper function for computing distance between stations
 distanceFrom(#station{coords = {X1, Y1}}) -> fun(#station{coords = {X2, Y2}}) ->
   math:sqrt(math:pow(X1 - X2, 2) + math:pow(Y1 - Y2, 2));
   (_) -> {error, wrong_arguments} end.
 
-%funkcja pomocnicza do znajdywania dwóch stacji leżących najbliżej siebie:
-%przypadek brzegowy
+%% @hidden helper function for finding two closest stations:
+%% edge condition
 closestTwo([_], {A, B, MinDist}) ->
   {A, B, MinDist};
-%dla danej stacji w monitorze: oblicza odległość do wszystkich stacj znajdujących się
-% w ogonie monitora (wcześniejsze zostały sprawdzone przed nią), jesli znajdzie stację
-% leżącą bliżej do S niż aktualnie najmniejsza odległość to zastępuje wcześniejszą
-% parę S i tą stacją
+%% for station S: computes distance do all stations behind S in monitor,
+%% (stations before S where checked earlier), if there is a station Closest
+%% closer to S than current minimal distance replaces current pair
+%% with S and Closest
 closestTwo([S | T], {A, B, MinDist}) ->
   DistanceFromS = distanceFrom(S),
   [Closest | _] = lists:sort(fun(X, Y) -> DistanceFromS(X) < DistanceFromS(Y) end, T),
@@ -172,11 +203,14 @@ closestTwo([S | T], {A, B, MinDist}) ->
   if MinDist > Distance -> closestTwo(T, {S, Closest, Distance});
     true -> closestTwo(T, {A, B, MinDist})
   end;
-%w przypadku błędnych argumentów
 closestTwo(_, _) ->
   {error, wrong_arguments}.
 
-%wrapper dla wcześniejszej funkcji
+%% @doc Two closest stations: get two stations in Monitor
+%% that are closest to each other.
+%% Returns {empty, empty, infinity} if monitor contains no more than one station,
+%% {Station_A_name, Station_B_name, distance} otherwise.
+%% @end
 getTwoClosestStations(Monitor) ->
   case closestTwo(Monitor, {empty, empty, infinity}) of
     {S1, S2, Dist} -> {S1#station.name, S2#station.name, Dist};
