@@ -190,7 +190,7 @@ distanceFrom(#station{coords = {X1, Y1}}) -> fun(#station{coords = {X2, Y2}}) ->
 
 %% @hidden helper function for finding two closest stations:
 %% edge condition
-closestTwo([_], {A, B, MinDist}) ->
+closestTwo([], {A, B, MinDist}) ->
   {A, B, MinDist};
 %% for station S: computes distance do all stations behind S in monitor,
 %% (stations before S where checked earlier), if there is a station Closest
@@ -213,6 +213,6 @@ closestTwo(_, _) ->
 %% @end
 getTwoClosestStations(Monitor) ->
   case closestTwo(Monitor, {empty, empty, infinity}) of
-    {S1, S2, Dist} -> {S1#station.name, S2#station.name, Dist};
+    {S1 = #station{}, S2 = #station{}, Dist}  -> {S1#station.name, S2#station.name, Dist};
     Other -> Other
   end.

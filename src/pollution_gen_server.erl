@@ -7,11 +7,11 @@
 
 -behaviour(gen_server).
 
--export([start_link/0, stop/0, init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2]).
+-export([start/0, stop/0, init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2]).
 -export([addStation/2, addValue/4, removeValue/3, getOneValue/3, getStationMean/2, getDailyMean/2,
   getMinTypeMean/1, getTwoClosestStations/0, crash/0]).
 
-start_link() ->
+start() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init([]) ->
