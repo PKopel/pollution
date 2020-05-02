@@ -1,5 +1,5 @@
 {application, pollution,
- [{description, "An OTP application"},
+ [{description, "An OTP application imitating program controlling pollution measuring stations"},
   {vsn, "0.1.0"},
   {registered, []},
   {mod, {pollution_app, []}},
@@ -7,7 +7,7 @@
    [kernel,
     stdlib
    ]},
-  {env,[]},
+  {env,[{monitor, empty}]},
   {modules, []},
 
   {licenses, ["Apache 2.0"]},

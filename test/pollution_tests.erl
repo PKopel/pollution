@@ -11,7 +11,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-% tworzenie struktury monitora:
+% creating monitor structure:
 create_test() ->
   ?assertEqual([], pollution:createMonitor()).
 
@@ -26,17 +26,17 @@ add_station_test() ->
     {station, "Nowa", {10, 10}, []},
     {station, "Aleja Słowackiego", {50.2345, 18.3445}, []}
   ], M2),
-  % kolejny raz ta sama
+  % same station again
   Error = pollution:addStation(M2, "Aleja Słowackiego", {50.2345, 18.3445}),
   ?assertEqual({error, station_already_exists}, Error).
 
-% dodawanie pomiarów
+% recording measurements
 add_value_test() ->
   M1 = [
     {station, "A", {1, 1}, []},
     {station, "B", {0, 0}, []}
   ],
-  % dodanie pomiarów do pierwszej stacji
+  % in first station
   M2 = pollution:addValue(M1, {1, 1}, {{2020, 3, 30}, {24, 0, 0}}, "X", 61),
   ?assertEqual([
     {station, "A", {1, 1}, [
@@ -52,7 +52,7 @@ add_value_test() ->
     ]},
     {station, "B", {0, 0}, []}
   ], M3),
-  % dodanie pomiarów do drugiej stacji
+  % in second station
   M4 = pollution:addValue(M3, "B", {{2020, 3, 30}, {24, 0, 0}}, "X", 59),
   ?assertEqual([
     {station, "A", {1, 1}, [
@@ -75,12 +75,12 @@ add_value_test() ->
       {{{2020, 3, 30}, {24, 0, 0}}, "X", 59}
     ]}
   ], M5),
-  % kolejny raz to samo
+  % same measurement again
   ?assertEqual({error, measurement_already_recorded}, pollution:addValue(M5, {1, 1}, {{2020, 3, 30}, {24, 0, 0}}, "X", 61)),
-  % nieistniejąca stacja
+  % non-existing station
   ?assertEqual({error, no_such_station}, pollution:addValue(M5, "C", {{2020, 3, 30}, {24, 0, 0}}, "Z", 61)).
 
-% sprawdzenie zapisów
+% reading measurements
 get_one_test() ->
   M = [
     {station, "A", {0, 0}, [
@@ -90,12 +90,12 @@ get_one_test() ->
   ],
   ?assertEqual(59, pollution:getOneValue(M, {0, 0}, {{2020, 3, 30}, {24, 0, 0}}, "X")),
   ?assertEqual(121, pollution:getOneValue(M, "A", {{2020, 3, 30}, {24, 0, 0}}, "Y")),
-  % nieistniejący pomiar
+  % non-existing measurement
   ?assertEqual({error, no_such_measurement}, pollution:getOneValue(M, "A", {{2020, 3, 10}, {24, 0, 0}}, "Y")),
-  % nieistniejaca stacja
+  % non-existing station
   ?assertEqual({error, no_such_station}, pollution:getOneValue(M, "C", {{2020, 3, 10}, {24, 0, 0}}, "Y")).
 
-% usunięcie pomiaru
+% removing measurements
 remove_test() ->
   M1 = [
     {station, "A", {0, 0}, [
@@ -104,12 +104,12 @@ remove_test() ->
   ],
   M2 = pollution:removeValue(M1, "A", {{2020, 3, 30}, {24, 0, 0}}, "X"),
   ?assertEqual([{station, "A", {0, 0}, []}], M2),
-  % nieistniejący pomiar
+  % non-existing measurement
   ?assertEqual({error, no_such_measurement}, pollution:removeValue(M2, "A", {{2020, 3, 30}, {24, 0, 0}}, "X")),
-  % nieistniejąca stacja
+  % non-existing station
   ?assertEqual({error, no_such_station}, pollution:removeValue(M2, "C", {{2020, 3, 30}, {24, 0, 0}}, "X")).
 
-% sprawdzenie średnich dla stacji
+% station means
 station_mean_test() ->
   M = [
     {station, "A", {0, 0}, [
@@ -120,12 +120,12 @@ station_mean_test() ->
   ],
   ?assertEqual(90.0, pollution:getStationMean(M, "A", "X")),
   ?assertEqual(121.0, pollution:getStationMean(M, {0, 0}, "Y")),
-  % nieistniejący typ
+  % non-existing type
   ?assertEqual(0, pollution:getStationMean(M, {0, 0}, "Z")),
-  % nieistniejąca stacja
+  % non-existing station
   ?assertEqual({error, no_such_station}, pollution:getStationMean(M, "B", "X")).
 
-% sprawdzenie średnich dla dni
+% daily means
 daily_mean_test() ->
   M = [
     {station, "A", {1, 1}, [
@@ -142,12 +142,12 @@ daily_mean_test() ->
   ?assertEqual(60.0, pollution:getDailyMean(M, "X", {2020, 3, 30})),
   ?assertEqual(120.0, pollution:getDailyMean(M, "X", {2020, 3, 31})),
   ?assertEqual(120.0, pollution:getDailyMean(M, "Y", {2020, 3, 30})),
-  % nieistniejący pomiar
+  % non-existing type
   ?assertEqual(0, pollution:getDailyMean(M, "Z", {2020, 3, 30})),
   ?assertEqual(0, pollution:getDailyMean(M, "X", {2020, 3, 10})).
 
 
-% stacje najbliżej siebie
+% two closest stations
 closest_stations_test() ->
   M = [
     {station, "A", {4, 3}, []},
@@ -157,7 +157,7 @@ closest_stations_test() ->
   ],
   ?assertEqual({"A", "B", 5.0}, pollution:getTwoClosestStations(M)).
 
-% stacja o najniższym średnim odczycie danego typu
+% station with the lowest mean
 min_type_mean_test() ->
   M = [
     {station, "A", {1, 1}, [
@@ -173,5 +173,5 @@ min_type_mean_test() ->
   ],
   ?assertEqual({"B", 80.0}, pollution:getMinTypeMean(M, "X")),
   ?assertEqual({"A", 110.0}, pollution:getMinTypeMean(M, "Y")),
-  % nieistniejący typ
+  % non-existing type
   ?assertEqual({error, no_such_measurement}, pollution:getMinTypeMean(M, "Z")).

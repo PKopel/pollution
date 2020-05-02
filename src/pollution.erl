@@ -39,7 +39,10 @@ searchMonitor(Monitor, _, Func) ->
 %% Returns new empty monitor
 %% @end
 createMonitor() ->
-  [].
+  case application:get_env(monitor) of
+    {ok, empty} -> [];
+    {ok, Monitor} -> Monitor
+  end.
 
 %% @doc Add new station: check if station is already in monitor,
 %% if not put new one at the beginning.

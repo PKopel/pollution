@@ -22,7 +22,7 @@ init([]) ->
     period => 1},
   ChildSpecs = [#{
     id => pollution_gen_server,
-    start => {pollution_gen_server, start, []},
+    start => {pollution_gen_server, start_link, []},
     restart => transient,
     shutdown => brutal_kill,
     type => worker,

@@ -7,20 +7,27 @@
 
 -behaviour(gen_server).
 
--export([start/0, stop/0, init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2]).
+-export([start_link/0, stop/0, init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2]).
 -export([addStation/2, addValue/4, removeValue/3, getOneValue/3, getStationMean/2, getDailyMean/2,
   getMinTypeMean/1, getTwoClosestStations/0, crash/0]).
 
-start() ->
+start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+%% internal functions
 
 init([]) ->
   {ok, pollution:createMonitor()}.
 
+serve(Monitor, Function, Type) ->
+  case Function(Monitor) of
+    {error, Reason} -> {Type, {error, Reason}, Monitor};
+    Result when is_list(Result) -> application:set_env(pollution, monitor, Result), {Type, ok, Result};
+    Result -> {Type, Result, Monitor}
+  end.
+
 terminate(normal, _Monitor) ->
   io:format("Stopped monitor~n").
-%% internal functions
-
 %% interface
 
 stop() ->
@@ -54,13 +61,6 @@ getTwoClosestStations() ->
   gen_server:call(?MODULE, getTwoClosestStations).
 
 %% message handling
-
-serve(Monitor, Function, Type) ->
-  case Function(Monitor) of
-    {error, Reason} -> {Type, {error, Reason}, Monitor};
-    Result when is_list(Result) -> {Type, ok, Result};
-    Result -> {Type, Result, Monitor}
-  end.
 
 handle_call({addStation, Name, Coords}, _From, Monitor) ->
   serve(Monitor, fun(M) -> pollution:addStation(M, Name, Coords) end, reply);
