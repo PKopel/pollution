@@ -23,8 +23,8 @@ pollution_gen_server_test_() ->
       station_mean_instantiator(Data),
       daily_mean_instantiator(Data),
       min_type_mean_instantiator(Data),
-      closest_stations_instantiator(Data),
-      crash_instantiator(Data)
+      closest_stations_instantiator(Data)%%,
+      %%crash_instantiator(Data)
     ]} end
   }.
 
@@ -58,8 +58,8 @@ add_value_instantiator(_) ->
 % recording measurement
 get_one_instantiator(_) ->
   [
-    ?_assertEqual({ok, 59}, pollution_gen_server:getOneValue({5, 4}, {{2020, 3, 30}, {24, 0, 0}}, "X")),
-    ?_assertEqual({ok, 119}, pollution_gen_server:getOneValue("A", {{2020, 3, 30}, {24, 0, 0}}, "Y")),
+    ?_assertEqual( 59, pollution_gen_server:getOneValue({5, 4}, {{2020, 3, 30}, {24, 0, 0}}, "X")),
+    ?_assertEqual( 119, pollution_gen_server:getOneValue("A", {{2020, 3, 30}, {24, 0, 0}}, "Y")),
     % non-existing measurement
     ?_assertEqual({error, no_such_measurement}, pollution_gen_server:getOneValue("A", {{2020, 3, 10}, {24, 0, 0}}, "Y")),
     % non-existing station
@@ -79,10 +79,10 @@ remove_instantiator(_) ->
 % station means
 station_mean_instantiator(_) ->
   [
-    ?_assertEqual({ok, 50.0}, pollution_gen_server:getStationMean("A", "X")),
-    ?_assertEqual({ok, 110.0}, pollution_gen_server:getStationMean({5, 4}, "Y")),
+    ?_assertEqual( 50.0, pollution_gen_server:getStationMean("A", "X")),
+    ?_assertEqual( 110.0, pollution_gen_server:getStationMean({5, 4}, "Y")),
     % non-existing measurement
-    ?_assertEqual({ok, 0}, pollution_gen_server:getStationMean({5, 4}, "Z")),
+    ?_assertEqual(0, pollution_gen_server:getStationMean({5, 4}, "Z")),
     % non-existing station
     ?_assertEqual({error, no_such_station}, pollution_gen_server:getStationMean("D", "X"))
   ].
@@ -90,33 +90,25 @@ station_mean_instantiator(_) ->
 % daily means
 daily_mean_instantiator(_) ->
   [
-    ?_assertEqual({ok, 60.0}, pollution_gen_server:getDailyMean("X", {2020, 3, 30})),
-    ?_assertEqual({ok, 40.0}, pollution_gen_server:getDailyMean("X", {2020, 3, 31})),
-    ?_assertEqual({ok, 120.0}, pollution_gen_server:getDailyMean("Y", {2020, 3, 30})),
+    ?_assertEqual(60.0, pollution_gen_server:getDailyMean("X", {2020, 3, 30})),
+    ?_assertEqual(40.0, pollution_gen_server:getDailyMean("X", {2020, 3, 31})),
+    ?_assertEqual(120.0, pollution_gen_server:getDailyMean("Y", {2020, 3, 30})),
     % non-existing measurement
-    ?_assertEqual({ok, 0}, pollution_gen_server:getDailyMean("Z", {2020, 3, 30})),
-    ?_assertEqual({ok, 0}, pollution_gen_server:getDailyMean("X", {2020, 3, 10}))
+    ?_assertEqual( 0, pollution_gen_server:getDailyMean("Z", {2020, 3, 30})),
+    ?_assertEqual( 0, pollution_gen_server:getDailyMean("X", {2020, 3, 10}))
   ].
 
 
 % stations closest to each other
 closest_stations_instantiator(_) ->
-  ?_assertEqual({ok, {"B", "A", 5.0}}, pollution_gen_server:getTwoClosestStations()).
+  ?_assertEqual({"B", "A", 5.0}, pollution_gen_server:getTwoClosestStations()).
 
 % station with lowest type mean
 min_type_mean_instantiator(_) ->
   [
-    ?_assertEqual({ok, {"B", 50.0}}, pollution_gen_server:getMinTypeMean("X")),
-    ?_assertEqual({ok, {"B", 110.0}}, pollution_gen_server:getMinTypeMean("Y")),
+    ?_assertEqual({"B", 50.0}, pollution_gen_server:getMinTypeMean("X")),
+    ?_assertEqual({"B", 110.0}, pollution_gen_server:getMinTypeMean("Y")),
     % non-existing type
     ?_assertEqual({error, no_such_measurement}, pollution_gen_server:getMinTypeMean("Z"))
   ].
 
-% check if server restarts after crash
-crash_instantiator(_) ->
-  [
-    fun() ->
-      pollution_gen_server:crash(),
-      ?_assertEqual({ok, 59}, pollution_gen_server:getOneValue({5, 4}, {{2020, 3, 30}, {24, 0, 0}}, "X"))
-    end
-].

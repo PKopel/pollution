@@ -19,11 +19,10 @@ start_link() ->
 init([]) ->
   {ok, pollution:createMonitor()}.
 
-serve(Monitor, Function, Type) ->
+serve(Monitor, Function, reply) ->
   case Function(Monitor) of
-    {error, Reason} -> {Type, {error, Reason}, Monitor};
-    Result when is_list(Result) -> application:set_env(pollution, monitor, Result), {Type, ok, Result};
-    Result -> {Type, Result, Monitor}
+    Result when is_list(Result) -> application:set_env(pollution, monitor, Result), {reply, ok, Result};
+    Result -> {reply, Result, Monitor}
   end.
 
 terminate(normal, _Monitor) ->
@@ -43,7 +42,7 @@ addValue(Station, Date, Type, Value) ->
   gen_server:call(?MODULE, {addValue, Station, Date, Type, Value}).
 
 removeValue(Station, Date, Type) ->
-  gen_server:cast(?MODULE, {removeValue, Station, Date, Type}).
+  gen_server:call(?MODULE, {removeValue, Station, Date, Type}).
 
 getOneValue(Station, Date, Type) ->
   gen_server:call(?MODULE, {getOneValue, Station, Date, Type}).
@@ -76,11 +75,11 @@ handle_call({getMinTypeMean, Type}, _From, Monitor) ->
   serve(Monitor, fun(M) -> pollution:getMinTypeMean(M, Type) end, reply);
 handle_call(getTwoClosestStations, _From, Monitor) ->
   serve(Monitor, fun(M) -> pollution:getTwoClosestStations(M) end, reply);
+handle_call({removeValue, Station, Date, Type}, _From, Monitor) ->
+  serve(Monitor, fun(M) -> pollution:removeValue(M, Station, Date, Type) end, reply);
 handle_call(stop, _From, Monitor) ->
   {stop, normal, ok, Monitor}.
 
-handle_cast({removeValue, Station, Date, Type}, Monitor) ->
-  serve(Monitor, fun(M) -> pollution:removeValue(M, Station, Date, Type) end, noreply);
 handle_cast(crash, Monitor) ->
   pollution:crash(),
   {noreply, Monitor}.

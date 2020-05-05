@@ -2,7 +2,8 @@
 %%% @author pkopel
 %%% @copyright (C) 2020, <COMPANY>
 %%% @doc
-%%%
+%%% Module imitating program controlling network of
+%%% pollution measurement stations
 %%% @end
 %%% Created : 28. Mar 2020 14:53
 %%%-------------------------------------------------------------------
@@ -41,7 +42,8 @@ searchMonitor(Monitor, _, Func) ->
 createMonitor() ->
   case application:get_env(monitor) of
     {ok, empty} -> [];
-    {ok, Monitor} -> Monitor
+    {ok, Monitor} -> Monitor;
+    _ -> []
   end.
 
 %% @doc Add new station: check if station is already in monitor,
@@ -119,10 +121,11 @@ getOneValue(Monitor, Station, Date, Type) ->
              end,
   searchMonitor(Monitor, Station, GetValue).
 
-%% @doc Dail mean: get mean value of measurements of Type
+%% @doc Daily mean: get mean value of measurements of Type
 %% from {Year, Month, Day}.
 %% Returns mean value of measurements or 0 if there are no
 %% measurements of Type from {Year, Month, Day} in Monitor
+%% or {error, wrong_arguments}.
 %% @end
 getDailyMean(Monitor, Type, {Year, Month, Day}) ->
   DailyMean = fun(S, {SumAcc, NumAcc}) ->
@@ -137,7 +140,8 @@ getDailyMean(Monitor, Type, {Year, Month, Day}) ->
     (empty, Acc) -> Acc end,
   case lists:foldl(DailyMean, {0, 0}, Monitor) of
     {0, 0} -> 0;
-    {Sum, Number} -> Sum / Number
+    {Sum, Number} when is_number(Sum), is_number(Number)-> Sum / Number;
+    _ -> {error, wrong_arguments}
   end.
 
 %% @hidden helper function for computing mean value of measurements of Type in one station
@@ -179,11 +183,11 @@ getMinTypeMean(Monitor, Type) ->
           true -> {MinS, MinMean}
         end
     end;
-    (empty, Acc) -> Acc;
-    (_, _) -> {error, wrong_arguments} end,
+    (empty, Acc) -> Acc end,
   case lists:foldl(MinMean, {empty, 0}, Monitor) of
-    {S, Mean} -> {S#station.name, Mean};
-    Other -> Other
+    {_, 0} -> {error, no_such_measurement};
+    {S, Mean} when is_number(Mean) -> {S#station.name, Mean};
+    _ -> {error, wrong_arguments}
   end.
 
 %% @hidden helper function for computing distance between stations
@@ -195,7 +199,9 @@ distanceFrom(#station{coords = {X1, Y1}}) -> fun(#station{coords = {X2, Y2}}) ->
 %% edge condition
 closestTwo([], {A, B, MinDist}) ->
   {A, B, MinDist};
-%% for station S: computes distance do all stations behind S in monitor,
+closestTwo([_], {A, B, MinDist}) ->
+  {A, B, MinDist};
+%% for station S: computes distance to all stations behind S in monitor,
 %% (stations before S where checked earlier), if there is a station Closest
 %% closer to S than current minimal distance replaces current pair
 %% with S and Closest
