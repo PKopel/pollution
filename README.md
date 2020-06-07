@@ -1,4 +1,4 @@
-pollution
+pollution_lfe
 =====
 
 An OTP application
