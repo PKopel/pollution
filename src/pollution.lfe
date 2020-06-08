@@ -17,10 +17,10 @@
 (defun check_station
 ;; by coordinates
   (((match-station coords station_coords) (tuple x y))
-   (=:= station_coords #(x y)))
+   (== station_coords `#(,x ,y)))
 ;; by name
   (((match-station name station_name) name)
-   (=:= station_name name)))
+   (== station_name name)))
 
 
 ;; Searching station in monitor:
@@ -46,7 +46,7 @@
 ;; if not put new one at the beginning.
 (defun add_station (monitor name coords)
   (flet ((compare_station (station)
-            (or (=:= (station-name station) name) (=:= (station-coords station) coords))))
+            (or (== (station-name station) name) (== (station-coords station) coords))))
     (if (lists:any #'compare_station/1 monitor)
       `#(error station_already_exists)
       (cons (make-station name name coords coords) monitor))))
@@ -68,7 +68,7 @@
         (let ((measurements (station-measurements current)))
           (if (lists:any (filter date type) measurements)
             `#(error measurement_already_recorded)
-            (cons (set-station-measurements current (cons #(date type value) measurements)) tail))))
+            (cons (set-station-measurements current (cons `#(,date ,type ,value) measurements)) tail))))
       ((_other) `#(error no_such_station))))
    (search_monitor monitor station #'internal_add_value/1)))
 
