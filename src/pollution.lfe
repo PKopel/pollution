@@ -109,7 +109,7 @@
         (let (((tuple value number)
           (lists:foldl
             (match-lambda (((tuple (tuple (tuple y m d) _hour) t v) (tuple sum num))
-              (if (and (== t type) (== y year) (== m month) (== d day))
+              (if (and (and (== t type) (== y year)) (and (== m month) (== d day)))
                 #((+ sum v) (+ num 1))
                 #(sum num))))
           #(0 0)

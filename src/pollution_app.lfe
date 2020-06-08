@@ -5,7 +5,7 @@
 
 (defmodule pollution_app
   (behaviour application)
-  (export (start 2) (stop 2)))
+  (export (start 2) (stop 1)))
 
 (defun start (_state _startArgs)
        (pollution_sup:start_link))

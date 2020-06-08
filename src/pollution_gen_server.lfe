@@ -1,5 +1,4 @@
 
--module(pollution_gen_server).
 (defmodule pollution_gen_server
   (behaviour gen_server)
   (export (start_link 0)
@@ -7,7 +6,6 @@
           (init 1)
           (terminate 2)
           (handle_call 3)
-          (handle_cast 2)
           (handle_info 2)
           (add_station 2)
           (add_value 4)
@@ -18,10 +16,12 @@
           (get_min_type_mean 1)
           (get_two_closest_stations 0)))
 
-(defun start_link () (gen_server:start_link `#(local ,(MODULE)) (MODULE) '[] '[]))
+(defun server_module () (MODULE))
+
+(defun start_link () (gen_server:start_link `#(local ,(server_module)) (server_module) '[] '[]))
 
 ;; internal functions
-(defun init (('[]) (tuple 'ok (pollution:create_monitor))))
+(defun init (([]) (tuple 'ok (pollution:create_monitor))))
 
 (defun serve (monitor function) `#(reply ok ,(funcall function monitor)))
 
