@@ -1,11 +1,19 @@
 ;;;-------------------------------------------------------------------
-;;; @doc pollution_lfe public API
+;;; @doc pollution public API
 ;;; @end
 ;;;-------------------------------------------------------------------
 
 (defmodule pollution_app
   (behaviour application)
-  (export (start 2) (stop 1)))
+  (export (start 2) (stop 1)
+          (add_station 2)
+          (add_value 4)
+          (remove_value 3)
+          (get_one_value 3)
+          (get_daily_mean 2)
+          (get_station_mean 2)
+          (get_min_type_mean 1)
+          (get_two_closest_stations 0)))
 
 (defun start (_state _startArgs)
        (pollution_sup:start_link))

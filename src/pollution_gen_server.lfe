@@ -18,33 +18,36 @@
 
 (defun server_module () (MODULE))
 
-(defun start_link () (gen_server:start_link `#(local ,(server_module)) (server_module) '[] '[]))
+(defun start_link () (gen_server:start_link `#(local pollution_gen_server) (server_module) [] []))
 
 ;; internal functions
 (defun init (([]) (tuple 'ok (pollution:create_monitor))))
 
-(defun serve (monitor function) `#(reply ok ,(funcall function monitor)))
+(defun serve (monitor function)
+  (case (funcall function monitor)
+    (result (when (is_list result)) `#(reply ok result))
+    (result `#(reply result monitor))))
 
 (defun terminate (normal _monitor) (io:format "Stopped monitor~n"))
 
 ;; interface
-(defun stop () (gen_server:call (MODULE) #('stop)))
+(defun stop () (gen_server:call (MODULE) #(stop)))
 
-(defun add_station (name coords) (gen_server:call (MODULE) #('add_station name coords)))
+(defun add_station (name coords) (gen_server:call (MODULE) #(add_station name coords)))
 
-(defun add_value (station date type value) (gen_server:call (MODULE) #('add_value station date type value)))
+(defun add_value (station date type value) (gen_server:call (MODULE) #(add_value station date type value)))
 
-(defun remove_value (station date type) (gen_server:call (MODULE) #('remove_value station date type)))
+(defun remove_value (station date type) (gen_server:call (MODULE) #(remove_value station date type)))
 
-(defun get_one_value (station date type) (gen_server:call (MODULE) #('get_value station date type)))
+(defun get_one_value (station date type) (gen_server:call (MODULE) #(get_value station date type)))
 
-(defun get_daily_mean (type date) (gen_server:call (MODULE) #('daily_mean date type)))
+(defun get_daily_mean (type date) (gen_server:call (MODULE) #(daily_mean date type)))
 
-(defun get_station_mean (station type) (gen_server:call (MODULE) #('station_mean station type)))
+(defun get_station_mean (station type) (gen_server:call (MODULE) #(station_mean station type)))
 
-(defun get_min_type_mean (type) (gen_server:call (MODULE) #('min_type_mean type)))
+(defun get_min_type_mean (type) (gen_server:call (MODULE) #(min_type_mean type)))
 
-(defun get_two_closest_stations () (gen_server:call (MODULE) #('closest_stations)))
+(defun get_two_closest_stations () (gen_server:call (MODULE) #(closest_stations)))
 
 ;; message handling
 (defun handle_call
