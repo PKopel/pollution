@@ -25,7 +25,7 @@
 
 (defun serve (monitor function)
   (case (funcall function monitor)
-    (result (when (is_list result)) `#(reply ,result ,result))
+    (result (when (is_list result)) `#(reply ok ,result))
     (result `#(reply ,result ,monitor))))
 
 (defun terminate (normal _monitor) (io:format "Stopped monitor~n"))
@@ -41,7 +41,7 @@
 
 (defun get_one_value (station date type) (gen_server:call (MODULE) `#(get_value ,station ,date ,type)))
 
-(defun get_daily_mean (type date) (gen_server:call (MODULE) `#(daily_mean ,date ,type)))
+(defun get_daily_mean (date type) (gen_server:call (MODULE) `#(daily_mean ,date ,type)))
 
 (defun get_station_mean (station type) (gen_server:call (MODULE) `#(station_mean ,station ,type)))
 
