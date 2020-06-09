@@ -25,7 +25,7 @@
 
 (defun serve (monitor function)
   (case (funcall function monitor)
-    (result (when (is_list result)) `#(reply ok ,result))
+    (result (when (is_list result)) `#(reply ,result ,result))
     (result `#(reply ,result ,monitor))))
 
 (defun terminate (normal _monitor) (io:format "Stopped monitor~n"))

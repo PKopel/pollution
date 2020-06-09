@@ -55,7 +55,7 @@
 ;; helper function for searching measurement list
 (defun filter (date type)
   (match-lambda
-    (((tuple date type _v)) 'true)
+    (((tuple d t _v)) (when (== d date) (== t type)) 'true)
     ((_other) 'false)))
 
 
