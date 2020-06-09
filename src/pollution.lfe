@@ -102,7 +102,7 @@
 
 ;; Daily mean: get mean value of measurements of Type
 ;; from {Year, Month, Day}.
-(defun get_daily_mean ((monitor type (tuple year month day))
+(defun get_daily_mean ((monitor (tuple year month day) type)
   (flet
     ((internal_daily_mean
       ((station (tuple sum_acc num_acc))
@@ -110,11 +110,11 @@
           (lists:foldl
             (match-lambda (((tuple (tuple (tuple y m d) _hour) t v) (tuple sum num))
               (if (and (and (== t type) (== y year)) (and (== m month) (== d day)))
-                #((+ sum v) (+ num 1))
+                `#(,(+ sum v) ,(+ num 1))
                 #(sum num))))
-          #(0 0)
-          (station-measurements station))))
-             (tuple (+ sum_acc value) (+ num_acc number))))))
+            #(0 0)
+            (station-measurements station))))
+          (tuple (+ sum_acc value) (+ num_acc number))))))
     (case (lists:foldl #'internal_daily_mean/2 (tuple 0 0) monitor)
       ((tuple 0 0) 0)
       ((tuple sum number) (when (and (is_number sum) (is_number number))) (/ sum number))
@@ -125,13 +125,13 @@
 (defun type_mean (type)
   (flet ((sum_measurements
     (((tuple _ t v) (tuple sum num))
-      (if (== t type) (tuple (+ sum v) (+ 1 num) (tuple sum num))))))
+      (if (== t type) (tuple (+ sum v) (+ 1 num)) (tuple sum num)))))
         (match-lambda
           (((cons station _))
             (case (lists:foldl #'sum_measurements/2 (tuple 0 0) (station-measurements station))
               ((tuple 0 0) 0)
               ((tuple value number) (/ value number))))
-          (('[])
+          (([])
             `#(error no_such_station)))))
 
 
@@ -148,16 +148,16 @@
     ((type_mean_fun (type_mean type)))
     (flet ((min_mean_fun
       ((station (tuple min_station min_mean))
-        (case (funcall type_mean_fun '[station])
-          ((tuple 'error reason) #('error reason))
+        (case (funcall type_mean_fun `[,station])
+          ((tuple 'error reason) `#(error ,reason))
           (mean (if (or (== 0 min_mean) (> min_mean mean))
-            #(station mean)
-            #(min_station min_mean)))))
+            `#(,station ,mean)
+            `#(,min_station ,min_mean)))))
           (('empty acc) acc)))
       (case (lists:foldl #'min_mean_fun/2 #('empty 0) monitor)
         ((tuple _ 0) `#(error no_such_measurement))
-        ((tuple s m) (when (is_number m)) #((station-name s) m))
-        (_ `#(error wrong_arguments))))))
+        ((tuple s m) (when (is_number m)) `#(,(station-name s) ,m))
+        (other other)))))
 
 
 ;; helper function for computing distance between stations
@@ -168,20 +168,20 @@
 
 ;; helper function for finding two closest stations:
 (defun closest_two
-  (([] (tuple a b min_dist)) #(a b min_dist))
-  (((cons _ []) (tuple a b min_dist)) #(a b min_dist))
+  (([] (tuple a b min_dist)) `#(,a ,b ,min_dist))
+  (((cons _ []) (tuple a b min_dist)) `#(,a ,b ,min_dist))
   (((cons station tail) (tuple a b min_dist))
     (let ((distance_from_s (distance_from station)))
       (let* (((cons closest _) (lists:sort (lambda (x y) (< (funcall distance_from_s x) (funcall distance_from_s y))) tail))
         (distance (funcall distance_from_s closest)))
         (if (> min_dist distance)
-          (closest_two tail #(station closest distance))
-          (closest_two tail #(a b min_dist))))))
-  ((_ _) (tuple 'error 'wrong_arguments)))
+          (closest_two tail `#(,station ,closest ,distance))
+          (closest_two tail `#(,a ,b ,min_dist))))))
+  ((_ _) `#(error wrong_arguments)))
 
 ;; Two closest stations: get two stations in Monitor
 ;; that are closest to each other.
 (defun get_two_closest_stations (monitor)
   (case (closest_two monitor `#(empty empty infinity))
-    ((tuple (match-station name first_name) (match-station name second_name) distance) #(first_name second_name distance))
+    ((tuple (match-station name first_name) (match-station name second_name) distance) `#(,first_name ,second_name ,distance))
     (other other)))
